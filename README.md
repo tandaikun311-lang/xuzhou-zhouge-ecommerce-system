@@ -39,6 +39,15 @@ requirements.txt      Python 运行依赖
 - Nginx
 - systemd
 
+## 直接获取
+
+```bash
+git clone https://github.com/tandaikun311-lang/xuzhou-zhouge-ecommerce-system.git
+cd xuzhou-zhouge-ecommerce-system
+```
+
+克隆后必须先按照 `config/runtime.env.example` 生成自己的独立密钥和管理员密码，不要使用任何演示或其他团队的生产配置。
+
 生产约定路径：
 
 ```text
