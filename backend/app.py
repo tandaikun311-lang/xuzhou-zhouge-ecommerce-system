@@ -5,7 +5,6 @@ import sqlite3, os, time, json, secrets, re, hmac, hashlib, datetime, urllib.par
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from flask import Flask, request, jsonify, Response
 
-DB = "/opt/team13-board/board.db"
 ENV_FILE = os.environ.get("TAN_BOARD_ENV_FILE", "/opt/team13-board/private/runtime.env")
 
 def _load_private_env(path):
@@ -30,6 +29,7 @@ def _required_env(name):
     return value
 
 _load_private_env(ENV_FILE)
+DB = (os.environ.get("TEAM13_DB_PATH") or "/opt/team13-board/board.db").strip()
 SCHEMA_MIGRATION_MODE = (os.environ.get("TEAM13_ALLOW_SCHEMA_MIGRATION") or "").strip() == "1"
 ADMIN_KEY = _required_env("TAN_ADMIN_KEY")
 EMP_KEY = _required_env("TAN_EMP_KEY")
@@ -42,6 +42,9 @@ SESSION_SECRET = _required_env("TAN_SESSION_SECRET")
 SESSION_TTL = 30 * 86400
 # 三档密码(从前端源码搬到服务器:现在只有服务器认识密码,网页里不再出现)
 LOGIN_PW = {VISITOR_KEY: "visitor", EMP_KEY: "employee", ADMIN_KEY: "admin"}
+ALLOWED_ORIGINS = tuple(x.strip().rstrip("/") for x in
+    (os.environ.get("TEAM13_ALLOWED_ORIGINS") or
+     "https://tandaikun.com,https://www.tandaikun.com").split(",") if x.strip())
 
 def _sess_sign(role, exp, name="", auth_version=0):
     # 实名登录(2026-07-27):员工token带姓名。姓名里不会有|,防注入先去掉。
@@ -106,8 +109,12 @@ def emp_ok(d):
     # 无代理头的本机巡检仍允许用内部密钥,不影响定时任务。
     return _internal_key_ok(d, (EMP_KEY, ADMIN_KEY))
 CATS = ["经验交流", "提问求助", "资源分享", "公告通知"]
-UPLOAD_DIR = "/www/wwwroot/default-site/zb-t1365d2f4f3/_uploads"
-URL_PREFIX = "/zb-t1365d2f4f3/_uploads"
+UPLOAD_DIR = (os.environ.get("TEAM13_UPLOAD_DIR") or
+              "/www/wwwroot/default-site/zb-t1365d2f4f3/_uploads").rstrip("/")
+URL_PREFIX = (os.environ.get("TEAM13_UPLOAD_URL_PREFIX") or
+              "/zb-t1365d2f4f3/_uploads").rstrip("/")
+VOUCHER_URL_RE = re.compile(r"^" + re.escape(URL_PREFIX) +
+    r"/[A-Za-z0-9_.-]+\.(jpg|jpeg|png|gif)$", re.I)
 IMG_EXT = {"jpg", "jpeg", "png", "gif"}
 # webp 已下架:服务器 Pillow 8.4.0 的 libwebp 解码有 CVE-2023-4863(堆溢出可执行代码),
 # 而上传的图必过 Pillow 生成缩略图。等 Pillow 升到 10.3+ 再考虑放回来。
@@ -177,8 +184,8 @@ def _same_site_write_guard():
     # 浏览器发起的写操作必须来自舟格正式站点；无 Origin 的服务端巡检仍可用。
     if request.method in ("POST", "PUT", "PATCH", "DELETE"):
         origin = (request.headers.get("Origin") or "").rstrip("/")
-        if origin and origin not in ("https://tandaikun.com", "https://www.tandaikun.com"):
-            return jsonify(err="请从徐州舟格正式页面操作"), 403
+        if origin and origin not in ALLOWED_ORIGINS:
+            return jsonify(err="请从已配置的正式页面操作"), 403
 
 @app.after_request
 def _security_headers(resp):
@@ -2706,7 +2713,7 @@ def _ecom_init():
 
 def _ecom_now_date():
     # 服务器/操作者可能不在中国时区，业务日期固定按北京时间。
-    return (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).date()
+    return (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)).date()
 
 def _ecom_money_cents(value, field):
     if value is None or value == "":
@@ -2866,7 +2873,7 @@ def ecom_report_save():
             reimbursed = _ecom_money_cents(x.get("reimbursed"), "第%d条已报销金额" % (i + 1))
             if not name: raise ValueError("第%d条买号记录缺少账号名称" % (i + 1))
             if cost <= 0: raise ValueError("第%d条买号费用必须大于0" % (i + 1))
-            if not re.match(r"^/zb-t1365d2f4f3/_uploads/[A-Za-z0-9_.-]+\.(jpg|jpeg|png|gif)$", voucher, re.I):
+            if not VOUCHER_URL_RE.match(voucher):
                 raise ValueError("第%d条买号记录必须上传付款凭证图片" % (i + 1))
             voucher_name = voucher.rsplit("/", 1)[-1]
             voucher_path = os.path.join(UPLOAD_DIR, voucher_name)
@@ -3199,6 +3206,7 @@ def _v2_init():
     q.execute("create index if not exists idx_v2_account_normalized on ecom_v2_accounts(account_key,platform_key,active,id)")
     q.execute("create index if not exists idx_v2_reimbursement_purchase on ecom_v2_reimbursement_events(purchase_id,created)")
     q.execute("create index if not exists idx_v2_reimbursement_report on ecom_v2_reimbursement_events(report_id,created)")
+    q.execute("create index if not exists idx_v2_reimbursement_event_purchase_report on ecom_v2_reimbursement_events(purchase_id,report_id)")
     q.execute("create index if not exists idx_v2_settlement_range on ecom_v2_settlements(status,start_date,end_date,group_no)")
     normalized_duplicate = q.execute("""select 1 from ecom_v2_accounts
         group by account_key,platform_key having count(*)>1 limit 1""").fetchone()
@@ -3237,6 +3245,17 @@ def _v2_init():
         begin select raise(abort,'invalid_purchase_state'); end""")
     q.execute("insert or replace into ecom_v2_schema_version(version,applied_at,note) values(3,?,?)",
               (int(time.time()), "R3责任链、报销版本和单进程迁移"))
+    # 全新数据库同时登记版本化迁移账本，避免应用 health=3、备份/巡检却显示 schema=0。
+    q.execute("""create table if not exists team13_schema_contract(
+        singleton integer primary key check(singleton=1),contract_version integer not null,updated_at integer not null)""")
+    q.execute("insert or replace into team13_schema_contract(singleton,contract_version,updated_at) values(1,3,?)",
+              (int(time.time()),))
+    q.execute("""create table if not exists team13_schema_migrations(
+        version integer primary key,name text not null,checksum text not null,applied_at text not null)""")
+    applied_at=datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00","Z")
+    q.execute("""insert or ignore into team13_schema_migrations(version,name,checksum,applied_at)
+        values(3,'0003_operational_contract.sql',?,?)""",
+        ("8036b5a2ab64b4cbc3db75c49b1083fc07c080c618f2525f4a5bb975684a742f",applied_at))
     c.commit(); c.close()
 
 def _v2_require_schema():
@@ -3311,7 +3330,7 @@ def _v2_password_verify(password, stored):
         return False
 
 def _v2_voucher_ok(url):
-    if not re.match(r"^/zb-t1365d2f4f3/_uploads/[A-Za-z0-9_.-]+\.(jpg|jpeg|png|gif)$", url or "", re.I):
+    if not VOUCHER_URL_RE.match(url or ""):
         return False
     name = url.rsplit("/", 1)[-1]
     path = os.path.join(UPLOAD_DIR, name)
@@ -3830,6 +3849,15 @@ def v2_dashboard():
 
     status_counts={s:int(status_map[s]["report_count"] or 0) if s in status_map else 0 for s in ECOM_RECONCILE_STATES}
     report_total=sum(status_counts.values())
+    requested_report_status=clean(request.args.get("report_status"),12) if request.endpoint=="v2_dashboard" else ""
+    if requested_report_status and requested_report_status not in ECOM_RECONCILE_STATES:
+        c.close();return jsonify(err="核账状态筛选不正确"),400
+    report_detail_where=where
+    report_detail_params=list(params)
+    if requested_report_status:
+        report_detail_where+=" and r.reconcile_status=?";report_detail_params.append(requested_report_status)
+    report_filtered_total=int(c.execute("select count(*) n from ecom_v2_reports r where "+report_detail_where,
+        report_detail_params).fetchone()["n"] or 0)
     acc_where="" if not group_filter else " where group_no=?"
     acc_params=[] if not group_filter else [group_filter]
     acc_summary=c.execute("select count(*) total,coalesce(sum(active),0) active_total from ecom_v2_accounts"+acc_where,
@@ -3864,9 +3892,8 @@ def v2_dashboard():
     account_limit=_v2_page_arg("account_limit",50,200);account_offset=_v2_page_arg("account_offset",0,1000000)
     reports=[]
     if "reports" in include and report_limit:
-        detail_where=where.replace("r.","")
-        id_rows=c.execute("select id from ecom_v2_reports where %s order by biz_date desc,group_no,employee_name limit ? offset ?"%detail_where,
-                          params+[report_limit,report_offset]).fetchall()
+        id_rows=c.execute("select r.id from ecom_v2_reports r where %s order by r.biz_date desc,r.group_no,r.employee_name limit ? offset ?"%report_detail_where,
+                          report_detail_params+[report_limit,report_offset]).fetchall()
         reports=_v2_reports_batch(c,[x["id"] for x in id_rows])
     account_out=[]
     if "accounts" in include and account_limit:
@@ -3911,8 +3938,9 @@ def v2_dashboard():
         "submitted_person_days":expected_person_days-missing_person_days,"missing_person_days":missing_person_days,
         "missing_entries":missing_entries,"missing_entries_truncated":missing_person_days>len(missing_entries),
         "missing_entry_limit":200,"basis":"按自然日应填，当前未设置休息/请假豁免"}
-    reports_meta={"included":"reports" in include,"total":report_total,"limit":report_limit,
-        "offset":report_offset,"returned":len(reports),"has_more":report_offset+len(reports)<report_total}
+    reports_meta={"included":"reports" in include,"total":report_filtered_total,"scope_total":report_total,
+        "filter_status":requested_report_status,"limit":report_limit,
+        "offset":report_offset,"returned":len(reports),"has_more":report_offset+len(reports)<report_filtered_total}
     accounts_meta={"included":"accounts" in include,"total":account_filtered_total,"scope_total":account_total,"limit":account_limit,
         "offset":account_offset,"returned":len(account_out),"has_more":account_offset+len(account_out)<account_filtered_total}
     reimbursement=c.execute("""select

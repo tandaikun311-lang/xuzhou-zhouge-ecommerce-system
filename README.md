@@ -28,6 +28,8 @@ backend/              Flask + SQLite 后端
 site/                 中文管理页面与移动端页面
 config/               Nginx、systemd 和私有环境变量模板
 ops/                  数据库迁移、备份、健康巡检与恢复手册
+docs/                 全新服务器快速部署说明
+tests/                初始化与核心角色链路烟雾测试
 requirements.txt      Python 运行依赖
 ```
 
@@ -59,15 +61,16 @@ cd xuzhou-zhouge-ecommerce-system
 
 ## 部署概要
 
-1. 创建 Python 虚拟环境并安装 `requirements.txt`。
-2. 将 `backend/app.py` 放到 `/opt/team13-board/app.py`。
-3. 从 `config/runtime.env.example` 创建 `/opt/team13-board/private/runtime.env`，为每个密钥生成独立随机值。
-4. 首次启动设置 `TEAM13_ALLOW_SCHEMA_MIGRATION=1`，初始化后通过 `/health` 确认 `schema_version=3`，再改回 `0`。
-5. 将 `site/` 内容部署到 `/www/wwwroot/default-site/zb-t1365d2f4f3/`。
-6. 安装 `config/team13-board.service`，并将 `config/nginx-team13.conf` 作为现有 HTTPS `server` 块内的配置片段。
-7. 执行 Nginx 配置检查、服务健康检查和空库验收后再录入正式数据。
+全新服务器请按照 [`docs/QUICKSTART.md`](docs/QUICKSTART.md) 执行。关键原则：数据库只能用单进程初始化，常驻 Gunicorn 启动时 `TEAM13_ALLOW_SCHEMA_MIGRATION` 必须为 `0`。
 
 详细迁移、备份和恢复步骤见 `ops/` 目录。
+
+本地代码验证：
+
+```bash
+python -m unittest discover -s tests -v
+python -m py_compile backend/app.py ops/daily_health_v2.py
+```
 
 ## 安全说明
 
@@ -81,3 +84,7 @@ cd xuzhou-zhouge-ecommerce-system
 当前发布版本完成 10 个角色智能体的连续 7 天模拟，以及老板、组长、员工、财务、账号报销、异常、性能和桌面/390px 手机端验收。最终生产链路验收 74/74 通过；测试数据已清理。
 
 建议正式使用前先选一个小组与原 Excel 并行运行 3–7 天，再决定是否全公司切换。
+
+## 开源许可
+
+本项目采用 [MIT License](LICENSE)。可以使用、修改和再发布，但必须保留原版权与许可声明。软件按现状提供，部署者需自行完成安全配置、备份和业务口径确认。

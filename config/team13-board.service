@@ -6,10 +6,12 @@ After=network.target
 [Service]
 WorkingDirectory=/opt/team13-board
 EnvironmentFile=/opt/team13-board/private/runtime.env
-ExecStart=/usr/local/bin/gunicorn -w 5 -b 127.0.0.1:8312 app:app --timeout 300
+ExecStart=/opt/team13-board/.venv/bin/gunicorn -w 5 -b 127.0.0.1:8312 app:app --timeout 300
 Restart=always
 User=tanboard
 Group=tanboard
+# 数据库仍由目录权限保护；上传凭证以 0640/0750 创建，供加入 tanboard 组的 Nginx 读取。
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target
