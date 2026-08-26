@@ -1,0 +1,15 @@
+# /etc/systemd/system/team13-board.service
+[Unit]
+Description=Team13 Board - Xuzhou Zhouge - zb-t1365d2f4f3
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/team13-board
+EnvironmentFile=/opt/team13-board/private/runtime.env
+ExecStart=/usr/local/bin/gunicorn -w 5 -b 127.0.0.1:8312 app:app --timeout 300
+Restart=always
+User=tanboard
+Group=tanboard
+
+[Install]
+WantedBy=multi-user.target

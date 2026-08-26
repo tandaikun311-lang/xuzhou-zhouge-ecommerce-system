@@ -1,0 +1,32 @@
+# 私有配置与密钥
+.env
+runtime.env
+private/
+*.key
+*.pem
+
+# 生产数据与用户凭证
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+_uploads/
+uploads/
+backups/
+
+# Python 与本地环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# 编辑器与系统文件
+.DS_Store
+.idea/
+.vscode/
+
+# 日志与临时文件
+*.log
+*.tmp
+*.bak

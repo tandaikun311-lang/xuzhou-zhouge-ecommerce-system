@@ -1,0 +1,16 @@
+/var/log/team13-board-backup.log
+/var/log/team13-board-hourly-backup.log
+/var/log/team13-board-uploads-backup.log
+/var/log/team13-board-snapshot.log
+/var/log/team13-board-health-v2.log
+{
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    su root root
+    create 0640 root root
+    sharedscripts
+}

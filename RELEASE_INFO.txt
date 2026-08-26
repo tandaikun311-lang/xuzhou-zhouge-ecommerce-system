@@ -1,0 +1,7 @@
+XUZHOU ZHOUGE E-COMMERCE SYSTEM
+release_date=2026-08-24
+release=round4-7day-validated
+production_acceptance=74/74
+contains_secrets=no
+contains_database=no
+contains_uploads=no
