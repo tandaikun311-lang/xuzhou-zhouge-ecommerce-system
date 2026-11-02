@@ -5,7 +5,7 @@ import sqlite3, os, time, json, secrets, re, hmac, hashlib, datetime, urllib.par
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from flask import Flask, request, jsonify, Response
 
-ENV_FILE = os.environ.get("TAN_BOARD_ENV_FILE", "/opt/team13-board/private/runtime.env")
+ENV_FILE = os.environ.get("TAN_BOARD_ENV_FILE", "/opt/your-app-dir/private/runtime.env")
 
 def _load_private_env(path):
     """读取公网目录外的私有配置。systemd 和定时巡检都可使用同一份,密钥不再写进代码。"""
@@ -29,7 +29,7 @@ def _required_env(name):
     return value
 
 _load_private_env(ENV_FILE)
-DB = (os.environ.get("TEAM13_DB_PATH") or "/opt/team13-board/board.db").strip()
+DB = (os.environ.get("TEAM13_DB_PATH") or "/opt/your-app-dir/board.db").strip()
 SCHEMA_MIGRATION_MODE = (os.environ.get("TEAM13_ALLOW_SCHEMA_MIGRATION") or "").strip() == "1"
 ADMIN_KEY = _required_env("TAN_ADMIN_KEY")
 EMP_KEY = _required_env("TAN_EMP_KEY")
@@ -44,7 +44,7 @@ SESSION_TTL = 30 * 86400
 LOGIN_PW = {VISITOR_KEY: "visitor", EMP_KEY: "employee", ADMIN_KEY: "admin"}
 ALLOWED_ORIGINS = tuple(x.strip().rstrip("/") for x in
     (os.environ.get("TEAM13_ALLOWED_ORIGINS") or
-     "https://tandaikun.com,https://www.tandaikun.com").split(",") if x.strip())
+     "https://your-domain.example,https://www.your-domain.example").split(",") if x.strip())
 
 def _sess_sign(role, exp, name="", auth_version=0):
     # 实名登录(2026-07-27):员工token带姓名。姓名里不会有|,防注入先去掉。
@@ -110,9 +110,9 @@ def emp_ok(d):
     return _internal_key_ok(d, (EMP_KEY, ADMIN_KEY))
 CATS = ["经验交流", "提问求助", "资源分享", "公告通知"]
 UPLOAD_DIR = (os.environ.get("TEAM13_UPLOAD_DIR") or
-              "/www/wwwroot/default-site/zb-t1365d2f4f3/_uploads").rstrip("/")
+              "/www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads").rstrip("/")
 URL_PREFIX = (os.environ.get("TEAM13_UPLOAD_URL_PREFIX") or
-              "/zb-t1365d2f4f3/_uploads").rstrip("/")
+              "/YOUR_HIDDEN_PREFIX/_uploads").rstrip("/")
 VOUCHER_URL_RE = re.compile(r"^" + re.escape(URL_PREFIX) +
     r"/[A-Za-z0-9_.-]+\.(jpg|jpeg|png|gif)$", re.I)
 IMG_EXT = {"jpg", "jpeg", "png", "gif"}
@@ -341,7 +341,7 @@ def parse_media(v):
     out = []
     if isinstance(m, list):
         for it in m[:9]:
-            if isinstance(it, dict) and re.match(r"^/zb-t1365d2f4f3/_uploads/[A-Za-z0-9_.\-]+$", it.get("url", "") or "") and it.get("type") in ("image", "video"):
+            if isinstance(it, dict) and re.match(r"^/YOUR_HIDDEN_PREFIX/_uploads/[A-Za-z0-9_.\-]+$", it.get("url", "") or "") and it.get("type") in ("image", "video"):
                 out.append({"url": it["url"], "type": it["type"]})
     return out
 
@@ -1603,7 +1603,7 @@ def template_staff():
     """读取私有花名册模板里已有的人员(老板的现有名单),与表单登记合并展示。"""
     try:
         import openpyxl
-        wb = openpyxl.load_workbook("/opt/team13-board/private/base_renyuan.xlsx", data_only=True)
+        wb = openpyxl.load_workbook("/opt/your-app-dir/private/base_renyuan.xlsx", data_only=True)
         ws = wb.worksheets[0]
         out = []
         for r in range(2, ws.max_row + 1):
@@ -2447,7 +2447,7 @@ def staff_xlsx():
     g = pii_guard(d)
     if g: return g
     import openpyxl, io, urllib.parse
-    TMPL = "/opt/team13-board/private/base_renyuan.xlsx"
+    TMPL = "/opt/your-app-dir/private/base_renyuan.xlsx"
     wb = openpyxl.load_workbook(TMPL)
     ws = wb.worksheets[0]
     # 岗位→职责对照

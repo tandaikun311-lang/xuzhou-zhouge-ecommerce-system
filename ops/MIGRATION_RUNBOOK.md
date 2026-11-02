@@ -17,15 +17,15 @@
 
 ```bash
 # 1. 当前版本只读预检；有 pending 时返回 3
-/opt/team13-board/ops/run_migration_v3.sh --check --target 3
+/opt/your-app-dir/ops/run_migration_v3.sh --check --target 3
 
 # 2. 先生成小时备份并记录输出路径
-/opt/team13-board/ops/hourly_backup_db.sh
+/opt/your-app-dir/ops/hourly_backup_db.sh
 
 # 3. 核对备份三件套和源库
-gzip -t /opt/team13-board-hourly-backup/YYYY-MM-DD/board_*.db.gz
-sha256sum -c /opt/team13-board-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256
-sudo -u tanboard sqlite3 'file:/opt/team13-board/board.db?mode=ro' 'pragma quick_check;'
+gzip -t /opt/your-app-dir-hourly-backup/YYYY-MM-DD/board_*.db.gz
+sha256sum -c /opt/your-app-dir-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256
+sudo -u tanboard sqlite3 'file:/opt/your-app-dir/board.db?mode=ro' 'pragma quick_check;'
 
 # 4. 冻结写入并停止服务；确认进程和 8312 已退出
 systemctl stop team13-board.service
@@ -33,11 +33,11 @@ systemctl is-active team13-board.service
 ss -lntp | grep ':8312' && exit 1 || true
 
 # 5. 使用刚生成的备份凭证执行迁移
-/opt/team13-board/ops/run_migration_v3.sh --apply --target 3 \
-  --backup-sha /opt/team13-board-hourly-backup/YYYY-MM-DD/board_YYYYMMDD_HHMMSS.db.gz.sha256
+/opt/your-app-dir/ops/run_migration_v3.sh --apply --target 3 \
+  --backup-sha /opt/your-app-dir-hourly-backup/YYYY-MM-DD/board_YYYYMMDD_HHMMSS.db.gz.sha256
 
 # 6. 再做只读预检，必须 current=target、pending=none
-/opt/team13-board/ops/run_migration_v3.sh --check --target 3
+/opt/your-app-dir/ops/run_migration_v3.sh --check --target 3
 
 # 7. 启动后验证 health、登录和三岗位链路
 systemctl start team13-board.service

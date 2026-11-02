@@ -5,7 +5,7 @@ set -euo pipefail
 
 umask 077
 
-UPLOAD_ROOT="${TEAM13_UPLOAD_ROOT:-/www/wwwroot/default-site/zb-t1365d2f4f3/_uploads}"
+UPLOAD_ROOT="${TEAM13_UPLOAD_ROOT:-/www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads}"
 BACKUP_ROOT="${TEAM13_UPLOAD_BACKUP_ROOT:-/opt/team13-uploads-backup}"
 RETAIN_DAYS="${TEAM13_UPLOAD_BACKUP_RETAIN_DAYS:-30}"
 MAX_SOURCE_BYTES="${TEAM13_UPLOAD_BACKUP_MAX_SOURCE_BYTES:-21474836480}"
@@ -52,7 +52,7 @@ validate_paths() {
       *) die "test backup root must be below test base" ;;
     esac
   else
-    [[ "$upload_real" == "/www/wwwroot/default-site/zb-t1365d2f4f3/_uploads" ]] || \
+    [[ "$upload_real" == "/www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads" ]] || \
       die "production upload root must be the fixed Team13 _uploads path"
     [[ "$BACKUP_ROOT" == "/opt/team13-uploads-backup" ]] || \
       die "production backup root must be /opt/team13-uploads-backup"

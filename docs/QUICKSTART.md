@@ -28,12 +28,12 @@ git clone https://github.com/tandaikun311-lang/xuzhou-zhouge-ecommerce-system.gi
 cd xuzhou-zhouge-ecommerce-system
 
 if ! getent passwd tanboard >/dev/null; then
-  sudo useradd --system --home /opt/team13-board --shell /usr/sbin/nologin tanboard
+  sudo useradd --system --home /opt/your-app-dir --shell /usr/sbin/nologin tanboard
 fi
 id tanboard
-sudo install -d -o tanboard -g tanboard -m 750 /opt/team13-board
-sudo install -d -o tanboard -g tanboard -m 700 /opt/team13-board/private
-sudo install -d -o tanboard -g tanboard -m 2750 /www/wwwroot/default-site/zb-t1365d2f4f3/_uploads
+sudo install -d -o tanboard -g tanboard -m 750 /opt/your-app-dir
+sudo install -d -o tanboard -g tanboard -m 700 /opt/your-app-dir/private
+sudo install -d -o tanboard -g tanboard -m 2750 /www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads
 ```
 
 如果系统的 `nologin` 路径不同，请使用本机实际路径；不要重复创建已经存在的业务用户。
@@ -50,29 +50,29 @@ sudo usermod -aG tanboard www-data
 ## 3. 安装代码和 Python 环境
 
 ```bash
-sudo install -o root -g tanboard -m 640 backend/app.py /opt/team13-board/app.py
-sudo install -o root -g tanboard -m 640 requirements.txt /opt/team13-board/requirements.txt
-sudo cp -a ops /opt/team13-board/ops
-sudo chown -R root:tanboard /opt/team13-board/ops
-sudo find /opt/team13-board/ops -type f -name '*.sh' -exec chmod 750 {} \;
+sudo install -o root -g tanboard -m 640 backend/app.py /opt/your-app-dir/app.py
+sudo install -o root -g tanboard -m 640 requirements.txt /opt/your-app-dir/requirements.txt
+sudo cp -a ops /opt/your-app-dir/ops
+sudo chown -R root:tanboard /opt/your-app-dir/ops
+sudo find /opt/your-app-dir/ops -type f -name '*.sh' -exec chmod 750 {} \;
 
-sudo -u tanboard python3 -m venv /opt/team13-board/.venv
-sudo -u tanboard /opt/team13-board/.venv/bin/pip install --upgrade pip
-sudo -u tanboard /opt/team13-board/.venv/bin/pip install -r /opt/team13-board/requirements.txt
+sudo -u tanboard python3 -m venv /opt/your-app-dir/.venv
+sudo -u tanboard /opt/your-app-dir/.venv/bin/pip install --upgrade pip
+sudo -u tanboard /opt/your-app-dir/.venv/bin/pip install -r /opt/your-app-dir/requirements.txt
 
-sudo cp -a site/. /www/wwwroot/default-site/zb-t1365d2f4f3/
-sudo chown -R root:tanboard /www/wwwroot/default-site/zb-t1365d2f4f3
-sudo chown -R tanboard:tanboard /www/wwwroot/default-site/zb-t1365d2f4f3/_uploads
-sudo find /www/wwwroot/default-site/zb-t1365d2f4f3/_uploads -type d -exec chmod 2750 {} \;
-sudo find /www/wwwroot/default-site/zb-t1365d2f4f3/_uploads -type f -exec chmod 640 {} \;
+sudo cp -a site/. /www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/
+sudo chown -R root:tanboard /www/wwwroot/default-site/YOUR_HIDDEN_PREFIX
+sudo chown -R tanboard:tanboard /www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads
+sudo find /www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads -type d -exec chmod 2750 {} \;
+sudo find /www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/_uploads -type f -exec chmod 640 {} \;
 ```
 
 ## 4. 生成私有配置
 
 ```bash
 sudo install -o root -g tanboard -m 640 config/runtime.env.example \
-  /opt/team13-board/private/runtime.env
-sudoedit /opt/team13-board/private/runtime.env
+  /opt/your-app-dir/private/runtime.env
+sudoedit /opt/your-app-dir/private/runtime.env
 ```
 
 必须修改：
@@ -96,18 +96,18 @@ openssl rand -hex 32
 不要直接用多 worker Gunicorn 执行建表。先运行一次单进程初始化：
 
 ```bash
-cd /opt/team13-board
+cd /opt/your-app-dir
 sudo -u tanboard env \
-  TAN_BOARD_ENV_FILE=/opt/team13-board/private/runtime.env \
+  TAN_BOARD_ENV_FILE=/opt/your-app-dir/private/runtime.env \
   TEAM13_ALLOW_SCHEMA_MIGRATION=1 \
-  /opt/team13-board/.venv/bin/python -c 'import app'
+  /opt/your-app-dir/.venv/bin/python -c 'import app'
 ```
 
 确认数据库权限和结构：
 
 ```bash
-sudo -u tanboard sqlite3 /opt/team13-board/board.db 'PRAGMA quick_check;'
-sudo -u tanboard sqlite3 /opt/team13-board/board.db \
+sudo -u tanboard sqlite3 /opt/your-app-dir/board.db 'PRAGMA quick_check;'
+sudo -u tanboard sqlite3 /opt/your-app-dir/board.db \
   'SELECT MAX(version) FROM ecom_v2_schema_version;'
 ```
 
@@ -136,8 +136,8 @@ sudo systemctl restart nginx
 公开健康检查和登录页：
 
 ```bash
-curl -fsS https://你的域名/board13/api/health
-curl -I https://你的域名/zb-t1365d2f4f3/login.html
+curl -fsS https://你的域名/board/api/health
+curl -I https://你的域名/YOUR_HIDDEN_PREFIX/login.html
 ```
 
 ## 7. 上线前验收

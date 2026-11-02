@@ -7,8 +7,8 @@ health、systemd、SQLite quick/integrity、schema/关键约束、数据库/上�
 磁盘、TLS 证书和近 24 小时 5xx。
 
 兼容 Python 3.6，仅使用标准库。配置来源：
-1. /opt/team13-board/private/runtime.env（TEAM13_* 键）；
-2. /opt/team13-board/private/health.conf（JSON，同名配置覆盖 runtime.env）。
+1. /opt/your-app-dir/private/runtime.env（TEAM13_* 键）；
+2. /opt/your-app-dir/private/health.conf（JSON，同名配置覆盖 runtime.env）。
 
 退出码：0=全部正常，1=有警告，2=有故障。
 """
@@ -31,15 +31,15 @@ import urllib.parse
 import urllib.request
 
 
-DEFAULT_RUNTIME = "/opt/team13-board/private/runtime.env"
-DEFAULT_HEALTH_CONF = "/opt/team13-board/private/health.conf"
+DEFAULT_RUNTIME = "/opt/your-app-dir/private/runtime.env"
+DEFAULT_HEALTH_CONF = "/opt/your-app-dir/private/health.conf"
 
 DEFAULTS = {
     "service": "team13-board.service",
     "service_user": "tanboard",
-    "health_url": "https://tandaikun.com/board13/api/health",
-    "db_path": "/opt/team13-board/board.db",
-    "db_backup_root": "/opt/team13-board-hourly-backup",
+    "health_url": "https://your-domain.example/board/api/health",
+    "db_path": "/opt/your-app-dir/board.db",
+    "db_backup_root": "/opt/your-app-dir-hourly-backup",
     "db_backup_glob": "*/*.db.gz",
     "db_backup_max_hours": 2,
     "db_backup_require_sha256": True,
@@ -51,14 +51,14 @@ DEFAULTS = {
     "disk_warn_percent": 75,
     "disk_bad_percent": 88,
     "disk_min_free_gb": 5,
-    "cert_path": "/etc/letsencrypt/live/tandaikun.com/cert.pem",
+    "cert_path": "/etc/letsencrypt/live/your-domain.example/cert.pem",
     "cert_warn_days": 21,
     "cert_bad_days": 7,
     "nginx_access_log": "/var/log/nginx/access.log",
-    "site_match": "board13/api|zb-t1365d2f4f3",
+    "site_match": "board/api|YOUR_HIDDEN_PREFIX",
     "five_xx_warn": 1,
     "five_xx_bad": 10,
-    "history_dir": "/opt/team13-board/health_history_v2",
+    "history_dir": "/opt/your-app-dir/health_history_v2",
     "notify_webhook": "",
     "serverchan_sendkey": "",
     "notify_on_ok": False,
@@ -223,7 +223,7 @@ def check_service(cfg):
 
 def check_database(cfg):
     db_path = os.path.realpath(str(cfg["db_path"]))
-    if db_path != "/opt/team13-board/board.db" or not os.path.isfile(db_path):
+    if db_path != "/opt/your-app-dir/board.db" or not os.path.isfile(db_path):
         return item("bad", "SQLite 完整性", "数据库路径不存在或不是 Team13 固定路径")
     uri = "file:%s?mode=ro" % db_path
     sql = "PRAGMA quick_check; PRAGMA integrity_check;"
@@ -238,7 +238,7 @@ def check_database(cfg):
 def sqlite_ro_query(cfg, sql):
     """用服务账号只读查询固定生产库，避免 root 打开 WAL/SHM。"""
     db_path = os.path.realpath(str(cfg["db_path"]))
-    if db_path != "/opt/team13-board/board.db" or not os.path.isfile(db_path):
+    if db_path != "/opt/your-app-dir/board.db" or not os.path.isfile(db_path):
         return 2, "database path rejected"
     argv = ["sudo", "-u", str(cfg["service_user"]), "sqlite3",
             "file:%s?mode=ro" % db_path, sql]
@@ -527,8 +527,8 @@ def send_notification(cfg, report):
 
 def write_report(cfg, report):
     root = str(cfg["history_dir"])
-    if not root.startswith("/opt/team13-board/"):
-        raise ValueError("history_dir 必须位于 /opt/team13-board/ 下")
+    if not root.startswith("/opt/your-app-dir/"):
+        raise ValueError("history_dir 必须位于 /opt/your-app-dir/ 下")
     if not os.path.isdir(root):
         os.makedirs(root, 0o750)
     stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
