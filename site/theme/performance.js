@@ -1,4 +1,4 @@
-const API='/board13/api';
+const API='/board/api';
 const byId=id=>document.getElementById(id);
 const money=n=>(Number(n||0)<0?'-¥':'¥')+Math.abs(Number(n||0)).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -11,7 +11,7 @@ function clearToast(){const el=byId('msg');if(!el)return;el.textContent='';el.cl
 async function api(path,opt={}){let r;try{r=await fetch(API+path,{credentials:'same-origin',...opt})}catch(e){throw new Error('网络连接失败，请检查网络后重试')}let d={};const raw=await r.text();if(raw){try{d=JSON.parse(raw)}catch(e){if(!r.ok)throw new Error(`服务器暂时异常（${r.status}），请稍后重试`);throw new Error('服务器返回内容异常，请刷新后重试')}}if(!r.ok)throw new Error(d.err||`操作失败（${r.status}）`);return d}
 async function logout(){try{await fetch(API+'/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='login.html'}}
 async function identity(){return api('/ecom/v2/me')}
-function safeVoucherUrl(url){const value=String(url||'');return /^\/zb-t1365d2f4f3\/_uploads\/[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|gif)$/i.test(value)?value:''}
+function safeVoucherUrl(url){const value=String(url||'');return /^\/YOUR_HIDDEN_PREFIX\/_uploads\/[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|gif)$/i.test(value)?value:''}
 function voucherAnchor(url,label='查看凭证'){const safe=safeVoucherUrl(url);return safe?`<a class="voucher" target="_blank" rel="noopener noreferrer" href="${esc(safe)}">${esc(label)}</a>`:'<span class="sub">无有效凭证</span>'}
 function setBusy(el,busy,busyText='处理中…'){if(!el)return;if(busy){if(!el.dataset.idleText)el.dataset.idleText=el.textContent;el.disabled=true;el.setAttribute('aria-busy','true');el.textContent=busyText}else{el.disabled=false;el.removeAttribute('aria-busy');if(el.dataset.idleText){el.textContent=el.dataset.idleText;delete el.dataset.idleText}}}
 function setPageLoading(loading,text='正在读取…'){document.body.classList.toggle('is-loading',loading);document.querySelectorAll('[data-query-button]').forEach(el=>setBusy(el,loading,text))}

@@ -1,6 +1,6 @@
 # 徐州舟格系统备份与恢复手册
 
-默认实例：`team13-board.service`、`127.0.0.1:8312`、`/board13/api/`、`/zb-t1365d2f4f3/`。
+默认实例：`team13-board.service`、`127.0.0.1:8312`、`/board/api/`、`/YOUR_HIDDEN_PREFIX/`。
 
 复制成新实例时，必须同时更换服务名、端口、数据库路径、上传目录、API/静态路径、Cookie 隔离策略和全部密钥。
 
@@ -34,14 +34,14 @@
 生产默认以 root 执行，脚本会切换到应用用户完成 SQLite `.backup`：
 
 ```bash
-sudo /opt/team13-board/ops/hourly_backup_db.sh
+sudo /opt/your-app-dir/ops/hourly_backup_db.sh
 ```
 
 验证最新归档：
 
 ```bash
-gzip -t /opt/team13-board-hourly-backup/YYYY-MM-DD/board_*.db.gz
-sha256sum -c /opt/team13-board-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256
+gzip -t /opt/your-app-dir-hourly-backup/YYYY-MM-DD/board_*.db.gz
+sha256sum -c /opt/your-app-dir-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256
 ```
 
 备份完成后还应复制到不同服务器或对象存储。同一服务器、同一磁盘上的备份不能应对整机丢失。
@@ -49,7 +49,7 @@ sha256sum -c /opt/team13-board-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256
 ## 上传凭证备份
 
 ```bash
-sudo /opt/team13-board/ops/backup_uploads.sh
+sudo /opt/your-app-dir/ops/backup_uploads.sh
 ```
 
 验证 tar.gz、归档 SHA-256 和逐文件 SHA-256。上传凭证包含付款信息，异地存储必须使用私有桶、最小权限和加密传输。

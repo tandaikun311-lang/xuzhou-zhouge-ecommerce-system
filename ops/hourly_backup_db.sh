@@ -4,9 +4,9 @@ set -euo pipefail
 
 umask 077
 
-DB="${TEAM13_DB_PATH:-/opt/team13-board/board.db}"
-BACKUP_ROOT="${TEAM13_DB_HOURLY_BACKUP_ROOT:-/opt/team13-board-hourly-backup}"
-STAGE_ROOT="${TEAM13_DB_BACKUP_STAGE_ROOT:-/opt/team13-board/.backup-stage}"
+DB="${TEAM13_DB_PATH:-/opt/your-app-dir/board.db}"
+BACKUP_ROOT="${TEAM13_DB_HOURLY_BACKUP_ROOT:-/opt/your-app-dir-hourly-backup}"
+STAGE_ROOT="${TEAM13_DB_BACKUP_STAGE_ROOT:-/opt/your-app-dir/.backup-stage}"
 LOCK_DIR="${TEAM13_DB_BACKUP_LOCK_DIR:-/run/lock/team13-board-hourly-backup.lock}"
 RUN_AS="${TEAM13_DB_BACKUP_RUN_AS:-tanboard}"
 RETAIN_DAYS="${TEAM13_DB_HOURLY_RETAIN_DAYS:-14}"
@@ -40,9 +40,9 @@ if [[ "${TEAM13_TEST_MODE:-0}" == "1" ]]; then
   case "$(canonical_existing "$STAGE_ROOT")" in "$test_base"/*) ;; *) die "test stage root escapes base" ;; esac
   case "$(canonical_existing "$(dirname "$LOCK_DIR")")" in "$test_base"/*|"$test_base") ;; *) die "test lock escapes base" ;; esac
 else
-  [[ "$(canonical_existing "$DB")" == "/opt/team13-board/board.db" ]] || die "production db path rejected"
-  [[ "$BACKUP_ROOT" == "/opt/team13-board-hourly-backup" ]] || die "production backup root rejected"
-  [[ "$STAGE_ROOT" == "/opt/team13-board/.backup-stage" ]] || die "production stage root rejected"
+  [[ "$(canonical_existing "$DB")" == "/opt/your-app-dir/board.db" ]] || die "production db path rejected"
+  [[ "$BACKUP_ROOT" == "/opt/your-app-dir-hourly-backup" ]] || die "production backup root rejected"
+  [[ "$STAGE_ROOT" == "/opt/your-app-dir/.backup-stage" ]] || die "production stage root rejected"
   [[ "$LOCK_DIR" == "/run/lock/team13-board-hourly-backup.lock" ]] || die "production lock path rejected"
   [[ "$(id -u)" == "0" ]] || die "production backup must run as root"
 fi

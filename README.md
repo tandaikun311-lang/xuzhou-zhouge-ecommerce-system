@@ -53,10 +53,10 @@ cd xuzhou-zhouge-ecommerce-system
 生产约定路径：
 
 ```text
-/opt/team13-board/app.py
-/opt/team13-board/board.db
-/opt/team13-board/private/runtime.env
-/www/wwwroot/default-site/zb-t1365d2f4f3/
+/opt/your-app-dir/app.py
+/opt/your-app-dir/board.db
+/opt/your-app-dir/private/runtime.env
+/www/wwwroot/default-site/YOUR_HIDDEN_PREFIX/
 ```
 
 ## 部署概要

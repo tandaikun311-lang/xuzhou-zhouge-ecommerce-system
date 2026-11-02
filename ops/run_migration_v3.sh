@@ -5,8 +5,8 @@ set -euo pipefail
 umask 077
 
 MODE="check"
-DB="${TEAM13_DB_PATH:-/opt/team13-board/board.db}"
-MIGRATIONS="${TEAM13_MIGRATIONS_DIR:-/opt/team13-board/ops/migrations}"
+DB="${TEAM13_DB_PATH:-/opt/your-app-dir/board.db}"
+MIGRATIONS="${TEAM13_MIGRATIONS_DIR:-/opt/your-app-dir/ops/migrations}"
 TARGET="${TEAM13_SCHEMA_TARGET:-3}"
 SERVICE="${TEAM13_SERVICE:-team13-board.service}"
 LOCK_DIR="${TEAM13_MIGRATION_LOCK_DIR:-/run/lock/team13-board-migrate.lock}"
@@ -17,7 +17,7 @@ usage() {
   printf '%s\n' \
     'Usage:' \
     '  run_migration_v3.sh --check [--target 3]' \
-    '  run_migration_v3.sh --apply --backup-sha /opt/team13-board-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256' \
+    '  run_migration_v3.sh --apply --backup-sha /opt/your-app-dir-hourly-backup/YYYY-MM-DD/board_*.db.gz.sha256' \
     '' \
     '写迁移不会自行 stop/start 服务；操作人必须先停服务，脚本会复核。'
 }
@@ -60,8 +60,8 @@ if [[ "${TEAM13_TEST_MODE:-0}" == "1" ]]; then
     case "$(realpath_py "$path")" in "$test_base"|"$test_base"/*) ;; *) die "test path escapes base: $path" ;; esac
   done
 else
-  [[ "$(realpath_py "$DB")" == "/opt/team13-board/board.db" ]] || die "production db path rejected"
-  [[ "$(realpath_py "$MIGRATIONS")" == "/opt/team13-board/ops/migrations" ]] || die "production migrations path rejected"
+  [[ "$(realpath_py "$DB")" == "/opt/your-app-dir/board.db" ]] || die "production db path rejected"
+  [[ "$(realpath_py "$MIGRATIONS")" == "/opt/your-app-dir/ops/migrations" ]] || die "production migrations path rejected"
   [[ "$LOCK_DIR" == "/run/lock/team13-board-migrate.lock" ]] || die "production lock path rejected"
   [[ "$SERVICE" == "team13-board.service" ]] || die "production service name rejected"
   [[ "$(id -u)" == "0" ]] || die "production migration gate must run as root"
@@ -72,7 +72,7 @@ if [[ "$MODE" == "apply" ]]; then
   artifact="${BACKUP_SHA%.sha256}"
   [[ -f "$artifact" ]] || die "backup artifact missing: $artifact"
   if [[ "${TEAM13_TEST_MODE:-0}" != "1" ]]; then
-    case "$(realpath_py "$BACKUP_SHA")" in /opt/team13-board-hourly-backup/*/*.db.gz.sha256) ;; *) die "backup proof path rejected" ;; esac
+    case "$(realpath_py "$BACKUP_SHA")" in /opt/your-app-dir-hourly-backup/*/*.db.gz.sha256) ;; *) die "backup proof path rejected" ;; esac
   fi
   expected="$(awk 'NR==1{print $1}' "$BACKUP_SHA")"
   [[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]] || die "invalid backup checksum"
